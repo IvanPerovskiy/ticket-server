@@ -1,0 +1,116 @@
+version: "3.5"
+
+services:
+    redis:
+        image: "redis:alpine"
+
+    ticket_dev_server:
+        build:
+            context: ./docker/ticket_dev_server
+            dockerfile: Dockerfile
+            args:
+                UID: ${UID:-1000}
+                GID: ${GID:-1000}
+        image: ticket_dev_server
+        depends_on:
+            - ticket_dev_db
+        entrypoint: >
+            /home/app/entrypoint.sh
+        environment:
+            BSTR_DOMAIN: ${BSTR_DOMAIN:-qr.mybstr.com}
+        command: >
+            sh -c "
+                wait-for-it ticket_dev_db:5432 -- python manage.py migrate --no-input && \
+                python manage.py runserver 0.0.0.0:8443 \
+                "
+        volumes:
+            - ./src:/src:delegated
+            - ticket_dev_server_env:/home/app/env
+
+    ticket_dev_db:
+        image: postgres:12-alpine
+        environment:
+            POSTGRES_DB: ticket
+            POSTGRES_USER: ticket
+            POSTGRES_PASSWORD: ticket
+        volumes:
+            - ticket_dev_db:/var/lib/postgresql/data
+
+    ticket_dev_router:
+        build:
+            context: ./docker/ticket_dev_nossl_router
+            dockerfile: Dockerfile
+            args:
+                UID: ${UID:-1000}
+                GID: ${GID:-1000}
+        image: ticket_dev_router
+        depends_on:
+            - ticket_dev_server
+        command: >
+            sh -c "
+                wait-for-it ticket_dev_server:8443 --timeout=600 && \
+                nginx -c /home/app/nginx.conf \
+                "
+        ports:
+            - 80:8080
+            - 443:8443
+
+    ticket_dev_celery:
+        build:
+            context: ./docker/ticket_dev_celery
+            dockerfile: Dockerfile
+            args:
+                UID: ${UID:-1000}
+                GID: ${GID:-1000}
+        image: ticket_dev_celery
+        entrypoint: >
+            /home/app/entrypoint.sh
+        command: sh -c "celery -A ticket_server worker -l info"
+        volumes:
+            - ./src:/src:delegated
+        depends_on:
+            - ticket_dev_server
+            - ticket_dev_db
+            - redis
+
+    ticket_dev_celery_beat:
+        build:
+            context: ./docker/ticket_dev_celery
+            dockerfile: Dockerfile
+            args:
+                UID: ${UID:-1000}
+                GID: ${GID:-1000}
+        image: ticket_dev_celery_beat
+        entrypoint: >
+            /home/app/entrypoint.sh
+        command: sh -c "celery -A ticket_server beat -l info --pidfile=/tmp/celerybeat.pid --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+        volumes:
+            - ./src:/src:delegated
+        depends_on:
+            - ticket_dev_server
+            - ticket_dev_db
+            - redis
+
+    flower:
+        image: mher/flower
+        environment:
+            - CELERY_BROKER_URL=redis://redis:6379/0
+            - FLOWER_PORT=8888
+        ports:
+            - 8888:8888
+
+    pgadmin:
+        container_name: pgadmin
+        image: dpage/pgadmin4
+        environment:
+            - PGADMIN_DEFAULT_EMAIL=qr@mybstr.com
+            - PGADMIN_DEFAULT_PASSWORD=bstr
+            - PGADMIN_LISTEN_PORT=5050
+        ports:
+            - "5050:5050"
+        depends_on:
+            - ticket_dev_db
+
+volumes:
+    ticket_dev_server_env:
+    ticket_dev_db:

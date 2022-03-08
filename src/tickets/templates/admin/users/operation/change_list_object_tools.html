@@ -1,0 +1,5 @@
+{% load i18n admin_urls %}
+{% block object-tools-items %}
+<li><a href="{% url 'admin:synchronize_journeys' %}" class="link">Синхронизировать поездки</a></li>
+<li><a href="{% url 'admin:synchronize_topups' %}" class="link">Синхронизировать пополнения</a></li>
+{% endblock %}

@@ -1,0 +1,6 @@
+{% load i18n admin_urls %}
+{% block object-tools-items %}
+{% if original.status == 'FAILED' %}
+<li><a href="{% url 'admin:execute_transaction' original.id %}" class="link">Выполнить транзакцию</a></li>
+{% endif %}
+{% endblock %}

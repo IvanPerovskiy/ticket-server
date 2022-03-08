@@ -1,0 +1,6 @@
+{% load i18n admin_urls %}
+{% block object-tools-items %}
+{% if not original.client.is_merchant %}
+<li><a href="{% url 'admin:account_internal_transfer' original.id %}" class="link">Внутренний перевод</a></li>
+{% endif %}
+{% endblock %}

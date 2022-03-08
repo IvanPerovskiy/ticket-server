@@ -1,0 +1,17 @@
+stages:
+  - build
+  - test
+
+Build containers:
+  stage: build
+  script:
+    - echo "Build time"
+    - docker-compose build
+
+Test code:
+  stage: test
+  script:
+    - echo "Test time"
+    - docker-compose run ticket_dev_server python manage.py test --noinput
+
+

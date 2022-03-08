@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+
+.env
+src/venv
+src/.idea
+/.vscode
+src/.coverage
+src/coverage_html_report/
+
+src/celerybeat.pid

@@ -1,0 +1,23 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+
+Пополнение баланса счета
+<div id="content-main">
+    <form method="post" autocomplete="off">
+        {% csrf_token %}
+        <div class="aligned">
+
+
+            {{ form.non_field_errors }}
+
+            {{ form }}
+
+            <input type="submit" value="Перевести"/>
+
+        </div>
+    </form>
+</div>
+
+
+
+{% endblock %}
